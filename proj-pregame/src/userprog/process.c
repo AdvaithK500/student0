@@ -472,8 +472,24 @@ static bool setup_stack(void** esp) {
   kpage = palloc_get_page(PAL_USER | PAL_ZERO);
   if (kpage != NULL) {
     success = install_page(((uint8_t*)PHYS_BASE) - PGSIZE, kpage, true);
-    if (success)
-      *esp = PHYS_BASE;
+    if (success) {
+  // Start with PHYS_BASE
+  uint8_t *esp = PHYS_BASE - 20;
+
+  // Step 1: Push fake return address
+  esp -= 4;
+  *(uint32_t *)esp = 0;
+
+  // Step 2: Push argc = 1 (since do-not-much wants it)
+  esp -= 4;
+  *(uint32_t *)esp = 1;
+
+  // Step 3: Push argv = NULL (do-not-much doesn't actually deref it)
+  esp -= 4;
+  *(uint32_t *)esp = 0;
+  
+}
+
     else
       palloc_free_page(kpage);
   }

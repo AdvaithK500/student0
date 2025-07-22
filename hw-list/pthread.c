@@ -8,8 +8,8 @@
 #include <pthread.h>
 #include <string.h>
 
-#define NUM_THREADS 4
-int common = 162;
+#define NUM_THREADS 4 // all 4 threads can access common and somethingshared
+int common = 162; // global variable , subject to race conditions
 char* somethingshared;
 
 void* threadfun(void* threadid) {
@@ -28,10 +28,10 @@ int main(int argc, char* argv[]) {
   char* targs = strcpy(malloc(100), "I am on the heap.");
 
   if (argc > 1) {
-    nthreads = atoi(argv[1]);
+    nthreads = atoi(argv[1]); // you can pass a custom amount of #threads parameter instead of the macro constant
   }
 
-  pthread_t threads[nthreads];
+  pthread_t threads[nthreads]; // deifne an array of threads
 
   printf("Main stack: %lx, common: %lx (%d)\n", (unsigned long)&t, (unsigned long)&common, common);
   puts(targs);

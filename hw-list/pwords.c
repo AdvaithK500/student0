@@ -32,6 +32,29 @@
 #include "word_count.h"
 #include "word_helpers.h"
 
+struct thread_args {
+    char* filename;
+    word_count_list_t* wclist;
+};
+
+
+void* file_thread(void* arg) {
+    struct thread_args* args = (struct thread_args*) arg;
+
+    FILE* file = fopen(args->filename, "r");
+
+    if (!file) {
+        fprintf(stderr, "Error: could not open file %s\n", args->filename);
+        free(arg);
+        pthread_exit(NULL);
+    }
+
+    count_words(args->wclist, file);
+    fclose(file);
+    free(arg);  // clean up malloc'd args
+    pthread_exit(NULL);
+}
+
 /*
  * main - handle command line, spawning one thread per file.
  */
@@ -44,7 +67,32 @@ int main(int argc, char* argv[]) {
     /* Process stdin in a single thread. */
     count_words(&word_counts, stdin);
   } else {
-    /* TODO */
+    /* 
+    we will have argc - 1 amount of files inputs in the CLI
+     */
+    pthread_t threads[argc - 1];
+
+    // iterate through and create a thread and apss in the right data for each thread to spawn a seperate file and process it
+    for (int i = 1; i < argc; i++) {
+      struct thread_args* args = malloc(sizeof(struct thread_args)); // space for taking the args
+
+      args->filename = argv[i]; // argv[1] onwards is the file names to be taken inside the thread args struct
+      args->wclist = &word_counts;
+
+      int rc = pthread_create(&threads[i - 1], NULL, file_thread, args);
+      if (rc) {
+          fprintf(stderr, "Error: failed to create thread for %s\n", argv[i]);
+          free(args);
+          continue;
+      }
+
+    }
+
+    for (int i = 0; i < argc - 1; i++) {
+      pthread_join(threads[i], NULL);
+    }
+
+
   }
 
   /* Output final result of all threads' work. */
