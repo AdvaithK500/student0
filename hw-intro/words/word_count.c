@@ -32,7 +32,7 @@ char *new_string(char *str) {
   return strcpy(new_str, str);
 }
 
-int init_words(WordCount **wclist) {
+int init_words(WordCount **wclist) { // why double pointer? because its a pointer to the head of the lsit which itself is a pointer
   /* Initialize word count.
      Returns 0 if no errors are encountered
      in the body of this function; 1 otherwise.
@@ -47,12 +47,29 @@ ssize_t len_words(WordCount *wchead) {
      this function.
   */
     size_t len = 0;
-    return len;
+  WordCount *wc = wchead;
+  if (wc == NULL) {
+    return -1;
+  }
+  while (wc != NULL) {
+    len += 1;
+    wc = wc->next;
+  }
+
+  return len;
 }
 
 WordCount *find_word(WordCount *wchead, char *word) {
   /* Return count for word, if it exists */
-  WordCount *wc = NULL;
+  WordCount *wc = wchead;
+  
+  while (wc) {
+    if (strcmp(wc->word, word) == 0) {
+      return wc;
+    }
+    wc = wc->next;
+  }
+
   return wc;
 }
 
@@ -61,6 +78,48 @@ int add_word(WordCount **wclist, char *word) {
      Otherwise insert with count 1.
      Returns 0 if no errors are encountered in the body of this function; 1 otherwise.
   */
+  WordCount *wc = *wclist; // pointing to the head node
+
+  // what if wc == NULL? create a new head
+  if (wc == NULL) {
+    wc = malloc(sizeof(WordCount));
+
+    if (wc == NULL) {
+      return 1;
+    }
+
+    wc->count = 1;
+    wc->word = new_string(word);
+    wc->next = NULL;
+
+    *wclist = wc;
+
+    return 0;
+  }
+
+  // else wc is not null and we must find the word
+  wc = find_word(*wclist, word);
+  if (wc != NULL) {
+    wc->count += 1;
+
+    return 0;
+  }
+
+  // if we couldnt find the word, then insert it with count 1
+  // so now wc is null as no word found, so go to the end of list and add a node
+     wc = *wclist;
+  while (wc->next != NULL) {
+    wc = wc->next;
+  }
+
+  wc->next = malloc(sizeof(WordCount));
+  if (wc->next == NULL) {
+    return 1;
+  }
+  wc->next->count = 1;
+  wc->next->word = new_string(word);
+  wc->next->next = NULL;
+
  return 0;
 }
 

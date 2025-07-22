@@ -45,9 +45,34 @@ WordCount *word_counts = NULL;
  * Useful functions: fgetc(), isalpha().
  */
 int num_words(FILE* infile) {
-  int num_words = 0;
+    int num_words = 0;
+    int c;
+    int word_len = 0;
+    bool in_word = false;
 
-  return num_words;
+    while ((c = fgetc(infile)) != EOF) {
+        if (isalpha(c)) {
+            if (!in_word) {
+                in_word = true;
+                word_len = 1;
+            } else {
+                word_len++;
+            }
+        } else {
+            if (in_word && word_len > 1) {
+                num_words++;
+            }
+            in_word = false;
+            word_len = 0;
+        }
+    }
+
+    // Final word check in case file doesn't end with non-alpha
+    if (in_word && word_len > 1) {
+        num_words++;
+    }
+
+    return num_words;
 }
 
 /*
@@ -62,6 +87,34 @@ int num_words(FILE* infile) {
  * and 0 otherwise.
  */
 int count_words(WordCount **wclist, FILE *infile) {
+  int c;
+  int in_word = 0, index = 0;
+  char buffer[MAX_WORD_LEN];
+
+  if (wclist == NULL || infile == NULL) {
+    return 1;
+  }
+  // eg: add the string "hi!word\n" ==> must only add "hi" and "word"
+  while ((c = fgetc(infile)) != EOF) {
+    if (isalpha(c)) {
+        if (in_word) {
+          buffer[index] = tolower(c);
+          index++;
+        } else {
+          buffer[0] = tolower(c);
+          index = 1;
+          in_word = 1;
+        }
+    } else {
+      if (in_word) {
+        buffer[index] = '\0';
+        add_word(wclist, buffer);
+        in_word = 0;
+      }
+    }
+  }
+
+
   return 0;
 }
 
@@ -70,7 +123,12 @@ int count_words(WordCount **wclist, FILE *infile) {
  * Useful function: strcmp().
  */
 static bool wordcount_less(const WordCount *wc1, const WordCount *wc2) {
-  return 0;
+  if (wc1->count == wc2->count) {
+    // use alphabetic order to tiebreak
+    return strcmp(wc1->word, wc2->word) > 0 ? 0: 1; // if wc1 comes before wc2, then return 1 else 0
+  }
+
+  return wc1->count < wc2->count;
 }
 
 // In trying times, displays a helpful message.
@@ -88,11 +146,11 @@ static int display_help(void) {
 int main (int argc, char *argv[]) {
 
   // Count Mode (default): outputs the total amount of words counted
-  bool count_mode = true;
+  bool count_mode = false; // set to false for task 2 in hw0
   int total_words = 0;
 
   // Freq Mode: outputs the frequency of each word
-  bool freq_mode = false;
+  bool freq_mode = true; // set it to true?
 
   FILE *infile = NULL;
 
@@ -134,14 +192,26 @@ int main (int argc, char *argv[]) {
     // No input file specified, instead, read from STDIN instead.
     infile = stdin;
   } else {
+    
+      infile = fopen(argv[optind], "r");
+    }
     // At least one file specified. Useful functions: fopen(), fclose().
     // The first file can be found at argv[optind]. The last file can be
     // found at argv[argc-1].
-  }
 
   if (count_mode) {
+    if (infile == stdin) {
+      total_words = num_words(infile);
+      //printf("The total number of words is: %i\n", total_words);
+
+    }
+    for (int index = optind; index < argc; index++) {
+      infile = fopen(argv[index], "r");
+      total_words += num_words(infile);
+    }
     printf("The total number of words is: %i\n", total_words);
   } else {
+    count_words(&word_counts, infile);
     wordcount_sort(&word_counts, wordcount_less);
 
     printf("The frequencies of each word are: \n");
